@@ -1,85 +1,84 @@
-def print_field(field): #Функция для вывода поля
-    print("Текущее состояние игрового поля:") #просто вывод текста
-    for row in field: #
-        print(" ".join(row))
+# Инициализация начального состояния игры
+def init_game():
+    # Генерируем цифры от 1 до 19
+    numbers = [int(digit) for digit in "123456789123456789"]
+    return numbers
+
+
+# Функция для отображения игрового поля
+def display_board(board):
+    print("\nИгровое поле:")
+    for i in range(0, len(board), 9):
+        print(' '.join(str(board[j]) if board[j] != 'X' else 'X' for j in range(i, min(i + 9, len(board)))))
     print()
 
 
-def is_valid_pair(field, x1, y1, x2, y2):
-    if (x1 == x2 and y1 == y2) or field[x1][y1] == 'X' or field[x2][y2] == 'X':
+# Проверка, что пара может быть зачеркнута
+def is_valid_pair(board, first, second):
+    if board[first] == 'X' or board[second] == 'X':
         return False
-    # Получаем значения выбранных клеток
-    num1 = field[x1][y1]
-    num2 = field[x2][y2]
-    # Проверяем, являются ли они одинаковыми или дают в сумме 10
-    if num1 == num2 or (int(num1) + int(num2) == 10):
-        # Проверяем, что клетки рядом по горизонтали или вертикали, либо разделены зачеркнутыми
-        if (x1 == x2 and abs(y1 - y2) == 1) or (y1 == y2 and abs(x1 - x2) == 1):
-            return True
-        # Проверка через зачеркнутые
-        if x1 == x2:  # по горизонтали
-            for y in range(min(y1, y2) + 1, max(y1, y2)):
-                if field[x1][y] != 'X':
-                    return False
-            return True
-        if y1 == y2:  # по вертикали
-            for x in range(min(x1, x2) + 1, max(x1, x2)):
-                if field[x][y1] != 'X':
-                    return False
-            return True
+    if board[first] == board[second] or board[first] + board[second] == 10:
+        return True
     return False
 
-# Функция для получения координат от пользователя
-def get_coordinates():
+
+# Проверка соседних клеток (горизонтальных и вертикальных) для выбора пары
+def are_adjacent(first, second):
+    # Соседи по горизонтали или вертикали
+    if first == second + 1 or first == second - 1:  # Горизонталь
+        return True
+    if first == second + 9 or first == second - 9:  # Вертикаль
+        return True
+    return False
+
+
+# Получение координат от пользователя
+def get_coordinates(board):
     while True:
         try:
-            x1, y1 = map(int, input("Введите координаты первой цифры (через пробел, например: 0 0): ").split())
-            x2, y2 = map(int, input("Введите координаты второй цифры (через пробел, например: 0 1): ").split())
-            if all(0 <= coord < 3 for coord in [x1, y1, x2, y2]):
-                return x1, y1, x2, y2
+            first = int(input("Введите номер первой цифры (от 1 до 19): ")) - 1
+            second = int(input("Введите номер второй цифры (от 1 до 19): ")) - 1
+            if first < 0 or first >= len(board) or second < 0 or second >= len(board):
+                print("Ошибка: указаны неверные позиции.")
+            elif not are_adjacent(first, second):
+                print("Ошибка: цифры не находятся рядом.")
+            elif not is_valid_pair(board, first, second):
+                print("Ошибка: цифры не образуют пару.")
             else:
-                print("Некорректные координаты. Попробуйте снова.")
+                return first, second
         except ValueError:
-            print("Некорректный ввод. Введите два числа через пробел.")
+            print("Ошибка ввода: введите корректные числа.")
 
-# Функция для переписывания оставшихся цифр
-def rewrite_field(field):
-    new_field = []
-    for row in field:
-        for num in row:
-            if num != 'X':
-                new_field.append(num)
 
-    # Дописываем оставшиеся цифры в таблицу
-    while len(new_field) < 19:
-        new_field.append(' ')
+# Обновление игрового поля (зачеркивание выбранной пары)
+def update_board(board, first, second):
+    board[first] = 'X'
+    board[second] = 'X'
 
-    return [new_field[:9], new_field[9:19]]
 
-# Основной игровой цикл
+# Убираем все "X" и формируем новое игровое поле
+def collapse_board(board):
+    new_board = [digit for digit in board if digit != 'X']
+    while len(new_board) < len(board):
+        new_board.append('X')
+    return new_board
+
+
+# Основная игровая функция
 def play_game():
-    # Создаем начальное поле с числами от 1 до 19
-    field = [
-        [str(i) for i in range(1, 10)],
-        [str(i) for i in range(10, 19)],
-        [' ' for _ in range(9)]  # Заполняем третий ряд пустыми клетками
-    ]
+    board = init_game()
+    display_board(board)
 
-    while True:
-        print_field(field)
+    while 'X' not in board or len(set(board)) > 1:
+        first, second = get_coordinates(board)
+        update_board(board, first, second)
+        board = collapse_board(board)
+        display_board(board)
 
-        # Получаем координаты двух чисел от пользователя
-        x1, y1, x2, y2 = get_coordinates()
-
-        # Проверяем возможность вычеркнуть выбранные цифры
-        if is_valid_pair(field, x1, y1, x2, y2):
-            # Зачеркиваем цифры
-            field[x1][y1] = 'X'
-            field[x2][y2] = 'X'
-        else:
-            print("Нельзя вычеркнуть эти цифры. Попробуйте снова.")
-        field = rewrite_field(field)
-        if all(num == 'X' or num == ' ' for row in field for num in row):
-            print("Поздравляем! Вы вычеркнули все цифры.")
+        if board.count('X') == 18:  # Если осталась только одна цифра
+            print("Партия окончена! Осталась последняя цифра:", [digit for digit in board if digit != 'X'][0])
             break
-play_game()
+
+
+if __name__ == "__main__":
+    play_game()
